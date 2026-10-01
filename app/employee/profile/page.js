@@ -5,8 +5,8 @@ import toast from "react-hot-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useFetch } from "@/lib/useFetch";
-import { fmtDate, fmtDateTime, fmtDuration, LOGOUT_REASON } from "@/lib/format";
-import { Badge, Button, Input, PageHeader, Spinner, Textarea } from "@/components/ui";
+import { fmtDate, fmtDateTime, fmtDuration, LOGOUT_REASON, weekOffLabel } from "@/lib/format";
+import { Badge, Button, Input, PageHeader, Spinner } from "@/components/ui";
 
 function Detail({ label, value }) {
   return (
@@ -18,26 +18,10 @@ function Detail({ label, value }) {
 }
 
 export default function ProfilePage() {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const { data: sessions } = useFetch("/sessions/me", { limit: 15 });
-  const [contact, setContact] = useState({ phone: user.phone || "", address: user.address || "", emergency_contact: user.emergency_contact || "" });
   const [pw, setPw] = useState({ current_password: "", new_password: "", confirm: "" });
-  const [savingContact, setSavingContact] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-
-  const saveContact = async (e) => {
-    e.preventDefault();
-    setSavingContact(true);
-    try {
-      const updated = await api("/auth/me", { method: "PUT", body: contact });
-      setUser((u) => ({ ...u, ...updated }));
-      toast.success("Contact details saved");
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSavingContact(false);
-    }
-  };
 
   const changePassword = async (e) => {
     e.preventDefault();
@@ -66,17 +50,23 @@ export default function ProfilePage() {
             <Detail label="Email" value={user.email} />
             <Detail label="Date of joining" value={fmtDate(user.date_of_joining)} />
             <Detail label="Shift" value={user.shift_start ? `${user.shift_start} to ${user.shift_end}` : "Office hours"} />
+            <Detail label="Week off" value={weekOffLabel(user)} />
           </dl>
           <p className="mt-4 text-xs text-ink-muted">Ask your administrator to change these details.</p>
         </section>
 
-        <form onSubmit={saveContact} className="panel p-5 space-y-4">
+        <section className="panel p-5">
           <h2 className="font-bold">Contact details</h2>
-          <Input label="Phone" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} />
-          <Input label="Emergency contact" value={contact.emergency_contact} onChange={(e) => setContact({ ...contact, emergency_contact: e.target.value })} />
-          <Textarea label="Address" rows={2} value={contact.address} onChange={(e) => setContact({ ...contact, address: e.target.value })} />
-          <Button type="submit" loading={savingContact}>Save contact details</Button>
-        </form>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Detail label="Phone" value={user.phone} />
+            <Detail label="Emergency contact" value={user.emergency_contact} />
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-ink-muted">Address</dt>
+              <dd className="text-sm font-medium mt-0.5 whitespace-pre-line">{user.address || "—"}</dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-xs text-ink-muted">Ask your administrator to update your contact details.</p>
+        </section>
 
         <form onSubmit={changePassword} className="panel p-5 space-y-4">
           <h2 className="font-bold">Change password</h2>

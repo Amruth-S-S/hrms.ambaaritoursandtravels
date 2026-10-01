@@ -51,7 +51,7 @@ function ApplyModal({ onClose, onDone }) {
         </label>
         <Textarea label="Reason" required minLength={3} className="sm:col-span-2" value={form.reason} onChange={set("reason")} />
       </form>
-      <p className="mt-3 text-xs text-ink-muted">Weekends and holidays inside the range are not counted.</p>
+      <p className="mt-3 text-xs text-ink-muted">Your week off days inside the range are not counted.</p>
     </Modal>
   );
 }

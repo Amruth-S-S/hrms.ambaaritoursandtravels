@@ -190,7 +190,7 @@ export default function PunchCard() {
         <div>
           <p className="text-sm text-ink-muted">
             {now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-            {!rules.is_working_day && " (non-working day)"}
+            {!rules.is_working_day && " (your week off)"}
           </p>
           <p className="num text-5xl sm:text-6xl font-extrabold tracking-tight mt-1" aria-live="off">
             {now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}

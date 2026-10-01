@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
-import { fmtDate, fmtDateTime, money } from "@/lib/format";
+import { fmtDate, fmtDateTime, money, WEEKDAYS, weekOffLabel } from "@/lib/format";
 import {
   Button, Empty, ErrorNote, Input, Modal, PageHeader, Select, Spinner, StatusBadge, TableWrap, Textarea,
 } from "@/components/ui";
@@ -13,7 +13,7 @@ import {
 const EMPTY = {
   name: "", email: "", password: "", phone: "", employee_code: "", department_id: "", designation: "",
   date_of_joining: "", date_of_birth: "", gender: "", address: "", emergency_contact: "", salary: "",
-  role: "employee", status: "active", shift_start: "", shift_end: "", bank_account: "", ifsc: "", pan: "",
+  role: "employee", status: "active", shift_start: "", shift_end: "", week_off_day: "", week_off_date: "", bank_account: "", ifsc: "", pan: "",
 };
 
 function EmployeeForm({ initial, departments, onClose, onSaved }) {
@@ -104,6 +104,24 @@ function EmployeeForm({ initial, departments, onClose, onSaved }) {
             </div>
           </div>
           <p className="text-xs text-ink-muted mt-2">Leave shift times blank to use the company office hours.</p>
+          <div className="grid gap-4 sm:grid-cols-2 mt-4">
+            <Select label="Week off day" value={form.week_off_day} onChange={set("week_off_day")}>
+              <option value="">No weekly off</option>
+              {WEEKDAYS.map((d, i) => (
+                <option key={d} value={i}>{d}</option>
+              ))}
+            </Select>
+            <Input
+              label="Week off date"
+              type="date"
+              value={form.week_off_date}
+              onChange={set("week_off_date")}
+              hint="One extra day off on a specific date, e.g. a swapped week off"
+            />
+          </div>
+          <p className="text-xs text-ink-muted mt-2">
+            The company works every day. These days off are not counted as absent and need no leave.
+          </p>
         </fieldset>
 
         <fieldset>
@@ -213,6 +231,9 @@ export default function EmployeesPage() {
                   <td>
                     <div>{u.department_name || "—"}</div>
                     <div className="text-xs text-ink-muted">{u.designation}</div>
+                    {(u.week_off_day != null || u.week_off_date) && (
+                      <div className="text-xs text-ink-muted">Week off: {weekOffLabel(u)}</div>
+                    )}
                   </td>
                   <td className="num whitespace-nowrap">{fmtDate(u.date_of_joining)}</td>
                   <td className="num text-right whitespace-nowrap">{money(u.salary)}</td>
