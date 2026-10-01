@@ -22,14 +22,22 @@ function Trend({ trend, total }) {
   );
 }
 
-function SalaryTable({ rows, month }) {
+function SalaryTable({ rows, month, cutStart }) {
   const total = (k) => rows.reduce((sum, r) => sum + (r[k] || 0), 0);
   return (
     <section className="mt-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between mb-3">
         <div>
           <h2 className="font-bold">Salary for {monthLabel(month)}</h2>
-          <p className="text-sm text-ink-muted">Monthly salary minus the cut for late arrivals so far this month.</p>
+          <p className="text-sm text-ink-muted">
+            Monthly salary minus the cut for late arrivals so far this month.{" "}
+            {cutStart ? (
+              <>Late cut applies from <span className="font-semibold text-ink">{fmtDay(cutStart)}</span>.</>
+            ) : (
+              <>Late cut applies to every late arrival.</>
+            )}{" "}
+            <Link href="/admin/settings" className="font-semibold text-brand hover:underline">Change</Link>
+          </p>
         </div>
         {rows.length > 0 && (
           <p className="text-sm text-ink-muted">
@@ -147,7 +155,7 @@ export default function AdminDashboard() {
         </section>
       </div>
 
-      <SalaryTable rows={d.salaries || []} month={d.date.slice(0, 7)} />
+      <SalaryTable rows={d.salaries || []} month={d.date.slice(0, 7)} cutStart={d.late_cut_start} />
 
       <section className="panel mt-6">
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">

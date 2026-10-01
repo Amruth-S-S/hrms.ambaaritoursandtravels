@@ -5,10 +5,19 @@ import toast from "react-hot-toast";
 import { LocateFixed } from "lucide-react";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
-import { mapsUrl } from "@/lib/format";
+import { fmtDay, mapsUrl } from "@/lib/format";
 import { Button, ErrorNote, Input, PageHeader, Spinner } from "@/components/ui";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Mirrors backend app/services/late_fine.py
+const LATE_SLABS = [
+  ["Up to ₹20,000", "₹50"],
+  ["₹20,001 – ₹25,000", "₹80"],
+  ["₹25,001 – ₹30,000", "₹100"],
+  ["₹30,001 – ₹40,000", "₹200"],
+  ["Above ₹40,000", "₹250"],
+];
 
 function Toggle({ label, hint, checked, onChange }) {
   return (
@@ -28,8 +37,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
 
+  const fromSaved = (d) => ({ ...d, office_lat: d.office_lat ?? "", office_lng: d.office_lng ?? "" });
+
   useEffect(() => {
-    if (data) setForm({ ...data, office_lat: data.office_lat ?? "", office_lng: data.office_lng ?? "" });
+    if (data) setForm(fromSaved(data));
   }, [data]);
 
   if (loading && !form) return <Spinner />;
@@ -80,6 +91,7 @@ export default function SettingsPage() {
         office_radius_m: Number(form.office_radius_m),
         enforce_geofence: form.enforce_geofence,
         require_selfie: form.require_selfie,
+        late_cut_start: form.late_cut_start || null,
         leave_quota: {
           casual: Number(form.leave_quota.casual),
           sick: Number(form.leave_quota.sick),
@@ -158,6 +170,51 @@ export default function SettingsPage() {
         </section>
 
         <section className="panel p-5 space-y-4">
+          <div>
+            <h2 className="font-bold">Late salary cut</h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              Salary is cut for every 5 minutes an employee is late, counted from their own start time.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Input
+              className="flex-1"
+              label="Start cutting salary from"
+              type="date"
+              value={form.late_cut_start || ""}
+              onChange={set("late_cut_start")}
+              hint={
+                form.late_cut_start
+                  ? `Late arrivals before ${fmtDay(form.late_cut_start)} are not cut.`
+                  : "Empty: every late arrival is cut."
+              }
+            />
+            {form.late_cut_start && (
+              <Button type="button" variant="secondary" className="sm:mb-6" onClick={() => setForm({ ...form, late_cut_start: "" })}>
+                Clear date
+              </Button>
+            )}
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wider text-ink-muted">
+                <th className="py-1.5 font-semibold">Monthly salary</th>
+                <th className="py-1.5 font-semibold text-right">Cut per 5 min late</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {LATE_SLABS.map(([range, amount]) => (
+                <tr key={range}>
+                  <td className="py-1.5">{range}</td>
+                  <td className="py-1.5 text-right num font-semibold">{amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-xs text-ink-muted">Grace time above still applies: anyone within it is not marked late.</p>
+        </section>
+
+        <section className="panel p-5 space-y-4">
           <h2 className="font-bold">Yearly leave allowance</h2>
           <div className="grid grid-cols-3 gap-4">
             <Input label="Casual" type="number" min="0" step="0.5" value={form.leave_quota.casual} onChange={setQuota("casual")} />
@@ -166,6 +223,21 @@ export default function SettingsPage() {
           </div>
           <p className="text-xs text-ink-muted">Unpaid leave has no limit and is deducted from salary.</p>
         </section>
+      </div>
+
+      {/* Stays in view while scrolling; sits above the mobile bottom tab bar. */}
+      <div className="sticky z-10 mt-6 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-4">
+        <div className="panel flex flex-col gap-3 px-4 py-3 shadow-lg shadow-navy/10 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-ink-muted">Changes apply to everyone once saved.</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="flex-1 sm:flex-none" onClick={() => setForm(fromSaved(data))} disabled={saving}>
+              Reset
+            </Button>
+            <Button type="submit" className="flex-1 sm:flex-none" loading={saving}>
+              Save settings
+            </Button>
+          </div>
+        </div>
       </div>
     </form>
   );

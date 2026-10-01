@@ -79,7 +79,9 @@
   textarea.input { @apply h-auto py-2; }
 
   .tbl { @apply w-full text-sm; }
-  .tbl th { @apply text-left text-xs uppercase tracking-wider font-semibold text-ink-muted px-4 py-3 border-b border-line bg-surface-raised whitespace-nowrap; }
+  /* :where() keeps this rule weak so a heading's own text-right / text-center wins. */
+  :where(.tbl th) { @apply text-left; }
+  .tbl th { @apply text-xs uppercase tracking-wider font-semibold text-ink-muted px-4 py-3 border-b border-line bg-surface-raised whitespace-nowrap; }
   .tbl td { @apply px-4 py-3 border-b border-line align-top; }
   .tbl tbody tr:last-child td { @apply border-b-0; }
   .tbl tbody tr:hover td { @apply bg-brand-light/50; }
