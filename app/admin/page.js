@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useFetch } from "@/lib/useFetch";
-import { fmtDate, fmtDay, fmtTime } from "@/lib/format";
+import { fmtDate, fmtDay, fmtDuration, fmtTime, money, monthLabel } from "@/lib/format";
 import LocationCell from "@/components/LocationCell";
 import Selfie from "@/components/Selfie";
-import { Badge, Empty, ErrorNote, PageHeader, Spinner, Stat } from "@/components/ui";
+import { Badge, Empty, ErrorNote, PageHeader, Spinner, Stat, TableWrap } from "@/components/ui";
 
 function Trend({ trend, total }) {
   const max = Math.max(total, ...trend.map((t) => t.present), 1);
@@ -19,6 +19,73 @@ function Trend({ trend, total }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function SalaryTable({ rows, month }) {
+  const total = (k) => rows.reduce((sum, r) => sum + (r[k] || 0), 0);
+  return (
+    <section className="mt-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between mb-3">
+        <div>
+          <h2 className="font-bold">Salary for {monthLabel(month)}</h2>
+          <p className="text-sm text-ink-muted">Monthly salary minus the cut for late arrivals so far this month.</p>
+        </div>
+        {rows.length > 0 && (
+          <p className="text-sm text-ink-muted">
+            To pay <span className="num font-bold text-ink">{money(total("remaining"))}</span>
+            {total("late_deduction") > 0 && (
+              <> · late cut <span className="num font-semibold text-brick">{money(total("late_deduction"))}</span></>
+            )}
+          </p>
+        )}
+      </div>
+      <TableWrap>
+        {rows.length === 0 ? (
+          <Empty title="No active employees" />
+        ) : (
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th className="text-right">Monthly salary</th>
+                <th className="text-right">Late arrivals</th>
+                <th className="text-right">Late cut</th>
+                <th className="text-right">Final salary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td>
+                    <div className="font-semibold">{r.name}</div>
+                    <div className="text-xs text-ink-muted">{[r.employee_code, r.designation].filter(Boolean).join(", ")}</div>
+                  </td>
+                  <td className="num text-right">{r.monthly_salary ? money(r.monthly_salary) : "Not set"}</td>
+                  <td className="num text-right">
+                    {r.late_days ? (
+                      <div>
+                        <div>{r.late_days} {r.late_days === 1 ? "day" : "days"}</div>
+                        <div className="text-xs text-ink-muted">{fmtDuration(r.late_minutes)} late</div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className={`num text-right ${r.late_deduction ? "text-brick font-semibold" : ""}`}>
+                    <div>
+                      <div>{r.late_deduction ? `− ${money(r.late_deduction)}` : money(0)}</div>
+                      {r.fine_per_5_min > 0 && <div className="text-xs font-normal text-ink-muted">{money(r.fine_per_5_min)} per 5 min</div>}
+                    </div>
+                  </td>
+                  <td className="num text-right font-bold">{money(r.remaining)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </TableWrap>
+    </section>
   );
 }
 
@@ -79,6 +146,8 @@ export default function AdminDashboard() {
           </div>
         </section>
       </div>
+
+      <SalaryTable rows={d.salaries || []} month={d.date.slice(0, 7)} />
 
       <section className="panel mt-6">
         <div className="flex items-center justify-between px-5 py-4 border-b border-line">

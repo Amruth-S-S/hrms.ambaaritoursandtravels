@@ -15,7 +15,7 @@ function Row({ label, value, strong }) {
 
 export default function PayslipModal({ slip, companyName, onClose }) {
   if (!slip) return null;
-  const deductions = slip.lop_deduction + (slip.other_deductions || 0);
+  const deductions = slip.lop_deduction + (slip.late_deduction || 0) + (slip.other_deductions || 0);
   return (
     <Modal
       open
@@ -74,6 +74,9 @@ export default function PayslipModal({ slip, companyName, onClose }) {
           <div>
             <h3 className="font-bold mb-1">Deductions</h3>
             <Row label={`Loss of pay (${slip.lop_days} days)`} value={money(slip.lop_deduction)} />
+            {slip.late_deduction > 0 && (
+              <Row label={`Late coming (${slip.late_count} days, ${slip.late_minutes} min)`} value={money(slip.late_deduction)} />
+            )}
             <Row label="Other deductions" value={money(slip.other_deductions)} />
             <Row label="Total deductions" value={money(deductions)} strong />
           </div>

@@ -3,9 +3,44 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useFetch } from "@/lib/useFetch";
-import { fmtDateTime, fmtDay, fmtDuration, LEAVE_LABEL, monthLabel } from "@/lib/format";
+import { fmtDateTime, fmtDay, fmtDuration, LEAVE_LABEL, money, monthLabel } from "@/lib/format";
 import PunchCard from "@/components/PunchCard";
 import { Badge, Spinner, Stat } from "@/components/ui";
+
+function SalaryCard({ salary, month }) {
+  if (!salary?.monthly_salary) return null;
+  const cut = salary.late_deduction;
+  const keptPct = Math.max(0, Math.min(100, (salary.remaining / salary.monthly_salary) * 100));
+  return (
+    <section className="panel mt-6 overflow-hidden">
+      <div className="bg-gradient-to-r from-navy to-brand-dark px-5 py-4 text-white">
+        <p className="text-sm text-white/70">Salary for {monthLabel(month)} after late deductions</p>
+        <p className="num mt-1 text-3xl font-extrabold tracking-tight">{money(salary.remaining)}</p>
+        <div className="mt-3 h-1.5 rounded-full bg-white/20" aria-hidden>
+          <div className="h-full rounded-full bg-white" style={{ width: `${keptPct}%` }} />
+        </div>
+      </div>
+      <dl className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-line">
+        <div className="px-5 py-3">
+          <dt className="text-xs text-ink-muted">Monthly salary</dt>
+          <dd className="num mt-0.5 text-lg font-bold">{money(salary.monthly_salary)}</dd>
+        </div>
+        <div className="px-5 py-3">
+          <dt className="text-xs text-ink-muted">Late cut so far</dt>
+          <dd className={`num mt-0.5 text-lg font-bold ${cut ? "text-brick" : ""}`}>{cut ? `− ${money(cut)}` : money(0)}</dd>
+          <dd className="text-xs text-ink-muted">
+            {salary.late_minutes ? `${fmtDuration(salary.late_minutes)} late in total` : "No late arrivals"}
+          </dd>
+        </div>
+        <div className="px-5 py-3">
+          <dt className="text-xs text-ink-muted">Rule for your salary</dt>
+          <dd className="num mt-0.5 text-lg font-bold">{money(salary.fine_per_5_min)}</dd>
+          <dd className="text-xs text-ink-muted">cut for every 5 minutes late</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
 
 export default function EmployeeHome() {
   const { user } = useAuth();
@@ -29,6 +64,8 @@ export default function EmployeeHome() {
             <Stat label="Absent" value={s.absent} tone={s.absent ? "red" : undefined} />
             <Stat label="Hours worked" value={fmtDuration(s.work_minutes)} />
           </div>
+
+          <SalaryCard salary={data.salary} month={s.month} />
 
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
             <section className="panel p-5">

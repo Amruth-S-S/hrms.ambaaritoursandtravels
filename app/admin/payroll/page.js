@@ -142,7 +142,12 @@ export default function PayrollPage() {
                   <td className="num text-right">{money(p.gross)}</td>
                   <td className="num text-right">{p.payable_days} / {p.working_days}</td>
                   <td className={`num text-right ${p.lop_days ? "text-brick font-semibold" : ""}`}>{p.lop_days}</td>
-                  <td className="num text-right">{money(p.lop_deduction + (p.other_deductions || 0))}</td>
+                  <td className="num text-right">
+                    <div>
+                      <div>{money(p.lop_deduction + (p.late_deduction || 0) + (p.other_deductions || 0))}</div>
+                      {p.late_deduction > 0 && <div className="text-xs text-brick">incl. {money(p.late_deduction)} late</div>}
+                    </div>
+                  </td>
                   <td className="num text-right">{money(p.bonus)}</td>
                   <td className="num text-right font-bold">{money(p.net_pay)}</td>
                   <td><StatusBadge status={p.status} /></td>
