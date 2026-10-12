@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { LockOpen, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useFetch } from "@/lib/useFetch";
 import { fmtDate, fmtDateTime, money, WEEKDAYS, weekOffLabel } from "@/lib/format";
 import {
-  Button, Empty, ErrorNote, Input, Modal, PageHeader, Select, Spinner, StatusBadge, TableWrap, Textarea,
+  Badge, Button, Empty, ErrorNote, Input, Modal, PageHeader, Select, Spinner, StatusBadge, TableWrap, Textarea,
 } from "@/components/ui";
 
 const EMPTY = {
   name: "", email: "", password: "", phone: "", employee_code: "", department_id: "", designation: "",
   date_of_joining: "", date_of_birth: "", gender: "", address: "", emergency_contact: "", salary: "",
-  role: "employee", status: "active", shift_start: "", shift_end: "", week_off_day: "", week_off_date: "", bank_account: "", ifsc: "", pan: "",
+  role: "employee", status: "active", shift_start: "", shift_end: "", week_off_day: "", week_off_date: "", punch_always_unlocked: false, bank_account: "", ifsc: "", pan: "",
 };
 
 function EmployeeForm({ initial, departments, onClose, onSaved }) {
@@ -122,6 +122,20 @@ function EmployeeForm({ initial, departments, onClose, onSaved }) {
           <p className="text-xs text-ink-muted mt-2">
             The company works every day. These days off are not counted as absent and need no leave.
           </p>
+          <label className="mt-4 flex items-start gap-3 cursor-pointer rounded-lg border border-line p-3">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-[#1D5FD6]"
+              checked={Boolean(form.punch_always_unlocked)}
+              onChange={(e) => setForm((f) => ({ ...f, punch_always_unlocked: e.target.checked }))}
+            />
+            <span>
+              <span className="block text-sm font-medium">Allow check in and check out at any time</span>
+              <span className="block text-xs text-ink-muted">
+                Normally check in closes at shift start and check out opens at shift end. Use the unlock button in the list to allow it for today only.
+              </span>
+            </span>
+          </label>
         </fieldset>
 
         <fieldset>
@@ -160,6 +174,18 @@ export default function EmployeesPage() {
   const [editing, setEditing] = useState(null);
   const { data: users, loading, error, reload } = useFetch("/users", { q, department_id: dept, status });
   const { data: departments } = useFetch("/departments");
+
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+  const toggleUnlockToday = async (u) => {
+    const unlock = u.punch_unlocked_date !== today;
+    try {
+      await api(`/users/${u.id}/punch-unlock`, { method: "POST", params: { unlock } });
+      toast.success(unlock ? `${u.name} can check in and out at any time today` : `Today's unlock removed for ${u.name}`);
+      reload();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
 
   const remove = async (u) => {
     if (!window.confirm(`Delete ${u.name}? Their attendance history is kept. To keep the account, set it to Inactive instead.`)) return;
@@ -238,8 +264,29 @@ export default function EmployeesPage() {
                   <td className="num whitespace-nowrap">{fmtDate(u.date_of_joining)}</td>
                   <td className="num text-right whitespace-nowrap">{money(u.salary)}</td>
                   <td className="num text-xs whitespace-nowrap">{fmtDateTime(u.last_login_at)}</td>
-                  <td><StatusBadge status={u.status} /></td>
+                  <td>
+                    <div className="flex flex-col items-end sm:items-start gap-1">
+                      <StatusBadge status={u.status} />
+                      {u.punch_always_unlocked ? (
+                        <Badge tone="amber">Always unlocked</Badge>
+                      ) : u.punch_unlocked_date === today ? (
+                        <Badge tone="amber">Unlocked today</Badge>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="whitespace-nowrap text-right">
+                    {u.role === "employee" && !u.punch_always_unlocked && (
+                      <Button
+                        size="sm"
+                        variant={u.punch_unlocked_date === today ? "secondary" : "ghost"}
+                        onClick={() => toggleUnlockToday(u)}
+                        title={u.punch_unlocked_date === today ? "Remove today's unlock" : "Allow check in / out at any time today"}
+                        aria-label={`${u.punch_unlocked_date === today ? "Lock" : "Unlock"} check in and out for ${u.name} today`}
+                      >
+                        <LockOpen className="h-4 w-4" />
+                        <span className="hidden xl:inline">{u.punch_unlocked_date === today ? "Unlocked" : "Unlock today"}</span>
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={() => setEditing(u)} aria-label={`Edit ${u.name}`}>
                       <Pencil className="h-4 w-4" />
                     </Button>

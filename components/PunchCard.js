@@ -184,6 +184,13 @@ export default function PunchCard() {
   const co = record?.check_out;
   const workedMin = ci ? (co ? record.work_minutes : Math.floor((now - new Date(ci.time)) / 60000)) : 0;
 
+  // Re-check the shift limits every second so the buttons lock/unlock without a reload.
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const startMin = toMin(rules.shift_start || rules.office_start);
+  const endMin = toMin(rules.shift_end || rules.office_end);
+  const canCheckIn = Boolean(rules.unlocked) || nowMin < startMin;
+  const canCheckOut = Boolean(rules.unlocked) || endMin <= startMin || nowMin >= endMin;
+
   return (
     <section className="panel p-5 sm:p-6">
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -200,18 +207,33 @@ export default function PunchCard() {
 
         <div className="flex flex-col items-stretch md:items-end gap-2">
           {!ci && (
-            <Button className="h-12 px-6 text-base w-full md:w-auto" onClick={() => setMode("in")}>
+            <Button className="h-12 px-6 text-base w-full md:w-auto" onClick={() => setMode("in")} disabled={!canCheckIn}>
               <LogIn className="h-5 w-5" /> Check in
             </Button>
           )}
+          {!ci && !canCheckIn && (
+            <p className="max-w-xs rounded-lg border border-brick/30 bg-brick-light px-3 py-2 text-sm text-brick md:text-right" role="status">
+              Your check-in time is over (shift started at {rules.shift_start}). Sorry, you can&apos;t check in now.
+              Please contact your administrator.
+            </p>
+          )}
           {ci && !co && (
-            <Button variant="secondary" className="h-12 px-6 text-base w-full md:w-auto" onClick={() => setMode("out")}>
+            <Button variant="secondary" className="h-12 px-6 text-base w-full md:w-auto" onClick={() => setMode("out")} disabled={!canCheckOut}>
               <LogOut className="h-5 w-5" /> Check out
             </Button>
           )}
+          {ci && !co && !canCheckOut && (
+            <p className="max-w-xs rounded-lg border border-line bg-mist px-3 py-2 text-sm text-ink-soft md:text-right" role="status">
+              Check out opens at <span className="num font-semibold">{rules.shift_end}</span>, when your shift ends.
+            </p>
+          )}
+          {rules.unlocked && !co && (
+            <Badge tone="gray">Unlocked by admin {rules.unlocked === "today" ? "for today" : ""}</Badge>
+          )}
           {ci && co && <StatusBadge status={record.status} />}
           <p className="text-sm text-ink-muted">
-            {!ci && "You haven't checked in today."}
+            {!ci && canCheckIn && !rules.unlocked && <>Check in before <span className="num font-semibold text-ink">{rules.shift_start}</span>.</>}
+            {!ci && canCheckIn && rules.unlocked && "You haven't checked in today."}
             {ci && !co && <>Working for <span className="num font-semibold text-ink">{fmtDuration(workedMin)}</span></>}
             {ci && co && <>Worked <span className="num font-semibold text-ink">{fmtDuration(workedMin)}</span> today</>}
           </p>
